@@ -40,7 +40,7 @@ contract Staker is Ownable(msg.sender) {
         (bool success,) = address(weth).call{value: msg.value}("");
         if (!success) revert("Staking Failed");
         uint256 _totalStaked = _staker.totalStaked + msg.value;
-        uint256 _totalReward =  _calculateReward(_staker);
+        uint256 _totalReward = _calculateReward(_staker);
 
         _staker.totalStaked = _totalStaked;
         _staker.totalReward += _totalReward;
@@ -65,8 +65,8 @@ contract Staker is Ownable(msg.sender) {
         // address[] memory _stakerArr = stakerArr;
         rewardToken.approve(address(uniRouter), type(uint256).max);
         address[] memory path;
-            path[0] = address(rewardToken);
-            path[1] = uniRouter.WETH();
+        path[0] = address(rewardToken);
+        path[1] = uniRouter.WETH();
 
         for (uint256 i = 0; i < stakerArr.length; i++) {
             address _addr = stakerArr[i];
@@ -74,35 +74,34 @@ contract Staker is Ownable(msg.sender) {
             if (!_staker.allowCompound) {
                 continue;
             }
-            
 
             _staker.totalReward += _calculateReward(_staker);
 
-            // uint256[] memory _amounts =
-            //     uniRouter.swapExactTokensForTokens(_staker.totalReward, 0, path, address(this), block.timestamp + 86400);
-            // uint256 wethAmount = _amounts[1];
+            uint256[] memory _amounts =
+                uniRouter.swapExactTokensForTokens(_staker.totalReward, 0, path, address(this), block.timestamp + 86400);
+            uint256 wethAmount = _amounts[1];
 
-            // _staker.totalStaked += wethAmount;
-            // totalRewards -= _staker.totalReward;
-            // _staker.totalReward = 0;
-            // _staker.lastStaked = block.timestamp;
-            // receiptToken.mint(_addr, wethAmount);
+            _staker.totalStaked += wethAmount;
+            totalRewards -= _staker.totalReward;
+            _staker.totalReward = 0;
+            _staker.lastStaked = block.timestamp;
+            receiptToken.mint(_addr, wethAmount);
         }
 
-        // uint256 _amountToRewardCompounder = _calculateCompounderReward();
+        uint256 _amountToRewardCompounder = _calculateCompounderReward();
 
-        // totalFee -= _amountToRewardCompounder;
-        // lastCompounding = block.timestamp;
+        totalFee -= _amountToRewardCompounder;
+        lastCompounding = block.timestamp;
 
-        // weth.transfer(msg.sender, _amountToRewardCompounder);
+        weth.transfer(msg.sender, _amountToRewardCompounder);
 
-        // rewardToken.approve(address(uniRouter), 0);
+        rewardToken.approve(address(uniRouter), 0);
     }
 
     function _calculateReward(StakeInfo memory _info) internal view returns (uint256 _reward) {
         uint256 apr = 14;
         uint256 time = 365 days;
-        uint256 _timeSpent = _info.lastStaked > 0  ? block.timestamp - _info.lastStaked : 0;
+        uint256 _timeSpent = _info.lastStaked > 0 ? block.timestamp - _info.lastStaked : 0;
 
         _reward = (_info.totalStaked * apr * _timeSpent) / (time * 100);
     }
@@ -114,10 +113,10 @@ contract Staker is Ownable(msg.sender) {
         _rew = totalFee * duration / time;
     }
 
-    function addLiquidity(uint256 amountToMint) external payable  onlyOwner  {
+    function addLiquidity(uint256 amountToMint) external payable onlyOwner {
         rewardToken.mint(address(this), amountToMint);
         rewardToken.approve(address(uniRouter), amountToMint);
-       
+
         uniRouter.addLiquidityETH{value: msg.value}(
             address(rewardToken), amountToMint, 0, 0, address(this), block.timestamp + 86400
         );
